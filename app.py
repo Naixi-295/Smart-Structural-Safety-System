@@ -11,7 +11,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# ------------------ THEME ------------------
+# ------------------ PROFESSIONAL THEME ------------------
 st.markdown("""
 <style>
 body {
@@ -36,7 +36,7 @@ h1, h2, h3 {
 st.title("🏗️ Smart Structural Safety System")
 st.markdown("### ⚙️ ICT-Based Engineering Analysis Dashboard")
 
-# ------------------ SIDEBAR NAVIGATION ------------------
+# ------------------ NAVIGATION ------------------
 module = st.sidebar.radio("📂 Select Module", [
     "Beam Deflection & Safety",
     "Bridge Health Monitoring",
@@ -106,56 +106,70 @@ if module == "Beam Deflection & Safety":
         st.markdown(f"<h2 style='color:{color};'>{status}</h2>", unsafe_allow_html=True)
 
 # =========================================================
-# 🔵 MODULE 2: BRIDGE MONITORING
+# 🔵 MODULE 2: BRIDGE MONITORING (UPGRADED)
 # =========================================================
 elif module == "Bridge Health Monitoring":
 
     st.header("🌉 Bridge Health Monitoring Dashboard")
 
+    # ----------- CONTROL FEATURE -----------
+    st.sidebar.subheader("🎛️ Bridge Condition Control")
+
+    condition = st.sidebar.slider(
+        "Bridge Health Level (%)",
+        0, 100, 80
+    )
+
     t = np.arange(0, 50)
 
-    strain = np.random.normal(50, 10, 50)
-    vibration = np.random.normal(5, 1, 50)
-    temperature = np.random.normal(30, 5, 50)
+    # Dynamic simulation based on condition
+    noise_level = (100 - condition) / 10
 
-    risk = (np.mean(strain)/100) + (np.mean(vibration)/10)
+    strain = np.random.normal(40 + (100-condition)*0.3, noise_level*5, 50)
+    vibration = np.random.normal(3 + (100-condition)*0.05, noise_level, 50)
+    temperature = np.random.normal(30 + (100-condition)*0.1, 2, 50)
 
-    if risk < 1:
-        status = "✅ SAFE"
+    # Status logic
+    if condition > 70:
+        status = "✅ HEALTHY"
         color = "green"
-    elif risk < 1.5:
-        status = "⚠️ WARNING"
+    elif condition > 40:
+        status = "⚠️ MODERATE CONDITION"
         color = "orange"
     else:
-        status = "❌ DANGER"
+        status = "❌ CRITICAL CONDITION"
         color = "red"
 
     col1, col2 = st.columns(2)
 
     with col1:
-        st.subheader("Strain")
+        st.subheader("📈 Strain")
         fig1, ax1 = plt.subplots()
         ax1.plot(t, strain)
+        ax1.set_title("Strain Variation")
         ax1.grid()
         st.pyplot(fig1)
 
-        st.subheader("Temperature")
+        st.subheader("🌡 Temperature")
         fig2, ax2 = plt.subplots()
         ax2.plot(t, temperature)
+        ax2.set_title("Temperature Variation")
         ax2.grid()
         st.pyplot(fig2)
 
     with col2:
-        st.subheader("Vibration")
+        st.subheader("📊 Vibration")
         fig3, ax3 = plt.subplots()
         ax3.plot(t, vibration)
+        ax3.set_title("Vibration Response")
         ax3.grid()
         st.pyplot(fig3)
 
-        st.subheader("System Status")
+        st.subheader("🚨 System Status")
         st.markdown(f"<h2 style='color:{color};'>{status}</h2>", unsafe_allow_html=True)
 
     st.markdown("---")
+    st.metric("Bridge Health (%)", condition)
     st.metric("Avg Strain", f"{np.mean(strain):.2f}")
     st.metric("Avg Vibration", f"{np.mean(vibration):.2f}")
     st.metric("Avg Temperature", f"{np.mean(temperature):.2f}")

@@ -46,64 +46,73 @@ module = st.sidebar.radio("📂 Select Module", [
 # =========================================================
 # 🟢 MODULE 1: BEAM DEFLECTION
 # =========================================================
-if module == "Beam Deflection & Safety":
+if module == "Beam Deflection Predictor":
+    st.title("📐 Smart Beam Deflection & Failure Predictor")
 
-    st.header("📊 Beam Deflection & Failure Predictor")
+    L = st.number_input("Beam Length (m)", 1.0, 20.0, 5.0)
+    F = st.number_input("Load (N)", 100.0, 50000.0, 1000.0)
+    b = st.number_input("Beam Width (m)", 0.01, 1.0, 0.1)
+    h = st.number_input("Beam Height (m)", 0.01, 1.0, 0.2)
 
-    col1, col2 = st.columns(2)
+    # ---------------- EXPANDED MATERIAL DATABASE ---------------- #
+    materials = {
+        "Structural Steel": {"E": 200e9, "density": 7850},
+        "High Strength Steel (HSS)": {"E": 210e9, "density": 7850},
+        "Reinforced Concrete": {"E": 30e9, "density": 2500},
+        "Prestressed Concrete": {"E": 38e9, "density": 2450},
 
-    with col1:
-        L = st.slider("Beam Length (m)", 1.0, 10.0, 5.0)
-        P = st.slider("Load (N)", 100.0, 5000.0, 1000.0)
-        I = st.slider("Moment of Inertia (m⁴)", 1e-6, 1e-3, 1e-5)
+        "Aluminum Alloy 6061": {"E": 69e9, "density": 2700},
+        "Titanium Alloy (Ti-6Al-4V)": {"E": 116e9, "density": 4500},
 
-    with col2:
-        material = st.selectbox("Material", ["Steel", "Aluminum", "Concrete"])
+        "Carbon Fiber (CFRP)": {"E": 150e9, "density": 1600},
+        "Kevlar Composite": {"E": 83e9, "density": 1440},
 
-    # Material properties
-    if material == "Steel":
-        E = 200e9
-        yield_strength = 250e6
-    elif material == "Aluminum":
-        E = 70e9
-        yield_strength = 150e6
-    else:
-        E = 25e9
-        yield_strength = 40e6
+        "Glass Fiber Composite (GFRP)": {"E": 40e9, "density": 2000},
 
+        "Wood (Timber - Pine)": {"E": 12e9, "density": 600},
+        "Bamboo (Engineered)": {"E": 20e9, "density": 700},
+
+        "Cast Iron": {"E": 100e9, "density": 7200},
+        "Brass": {"E": 90e9, "density": 8500},
+        "Copper": {"E": 110e9, "density": 8960},
+
+        "Magnesium Alloy": {"E": 45e9, "density": 1800},
+        "High Performance Polymer": {"E": 3e9, "density": 1200}
+    }
+
+    material = st.selectbox("Select Material", list(materials.keys()))
+    E = materials[material]["E"]
+
+    # ---------------- CALCULATIONS ---------------- #
+    I = (b * h**3) / 12
     x = np.linspace(0, L, 100)
+    deflection = (F * x * (3*L**2 - 4*x**2)) / (24 * E * I)
 
-    deflection = (P * x * (L**3 - 2*L*x**2 + x**3)) / (48 * E * I)
     max_deflection = np.max(deflection)
 
-    stress = (P * L) / (4 * I)
-    fos = yield_strength / stress
+    # ---------------- VISUALIZATION ---------------- #
+    st.subheader("📊 Deflection Curve")
+    fig, ax = plt.subplots()
+    ax.plot(x, deflection, linewidth=2)
+    ax.set_title("Beam Deflection Diagram")
+    ax.set_xlabel("Length (m)")
+    ax.set_ylabel("Deflection (m)")
+    st.pyplot(fig)
 
-    if fos > 2:
-        status = "✅ SAFE"
-        color = "green"
-    elif fos > 1:
-        status = "⚠️ WARNING"
-        color = "orange"
+    # ---------------- ENGINEERING INTERPRETATION ---------------- #
+    st.subheader("🧠 Engineering Analysis")
+
+    stiffness_rank = E / 1e9  # GPa scale
+
+    st.write(f"**Selected Material:** {material}")
+    st.write(f"**Young's Modulus:** {stiffness_rank:.2f} GPa")
+
+    if max_deflection > L / 250:
+        st.error("❌ FAILURE RISK: Excessive deflection detected")
+    elif max_deflection > L / 500:
+        st.warning("⚠️ Moderate deflection – monitor design")
     else:
-        status = "❌ FAILURE"
-        color = "red"
-
-    col3, col4 = st.columns(2)
-
-    with col3:
-        st.subheader("Deflection Graph")
-        fig, ax = plt.subplots()
-        ax.plot(x, deflection)
-        ax.set_xlabel("Length (m)")
-        ax.set_ylabel("Deflection (m)")
-        ax.grid()
-        st.pyplot(fig)
-
-    with col4:
-        st.metric("Max Deflection", f"{max_deflection:.6e}")
-        st.metric("Factor of Safety", f"{fos:.2f}")
-        st.markdown(f"<h2 style='color:{color};'>{status}</h2>", unsafe_allow_html=True)
+        st.success("✅ SAFE DESIGN – within elastic limit")
 
 # =========================================================
 # 🔵 MODULE 2: BRIDGE MONITORING (UPGRADED)

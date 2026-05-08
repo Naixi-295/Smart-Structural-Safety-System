@@ -11,7 +11,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# ------------------ PROFESSIONAL THEME ------------------
+# ------------------ THEME ------------------
 st.markdown("""
 <style>
 body {
@@ -36,7 +36,7 @@ h1, h2, h3 {
 st.title("🏗️ Smart Structural Safety System")
 st.markdown("### ⚙️ ICT-Based Engineering Analysis Dashboard")
 
-# ------------------ NAVIGATION ------------------
+# ------------------ SIDEBAR NAVIGATION ------------------
 module = st.sidebar.radio("📂 Select Module", [
     "Beam Deflection & Safety",
     "Bridge Health Monitoring",
@@ -46,139 +46,116 @@ module = st.sidebar.radio("📂 Select Module", [
 # =========================================================
 # 🟢 MODULE 1: BEAM DEFLECTION
 # =========================================================
-if module == "Beam Deflection Predictor":
-    st.title("📐 Smart Beam Deflection & Failure Predictor")
+if module == "Beam Deflection & Safety":
 
-    L = st.number_input("Beam Length (m)", 1.0, 20.0, 5.0)
-    F = st.number_input("Load (N)", 100.0, 50000.0, 1000.0)
-    b = st.number_input("Beam Width (m)", 0.01, 1.0, 0.1)
-    h = st.number_input("Beam Height (m)", 0.01, 1.0, 0.2)
+    st.header("📊 Beam Deflection & Failure Predictor")
 
-    # ---------------- EXPANDED MATERIAL DATABASE ---------------- #
-    materials = {
-        "Structural Steel": {"E": 200e9, "density": 7850},
-        "High Strength Steel (HSS)": {"E": 210e9, "density": 7850},
-        "Reinforced Concrete": {"E": 30e9, "density": 2500},
-        "Prestressed Concrete": {"E": 38e9, "density": 2450},
+    col1, col2 = st.columns(2)
 
-        "Aluminum Alloy 6061": {"E": 69e9, "density": 2700},
-        "Titanium Alloy (Ti-6Al-4V)": {"E": 116e9, "density": 4500},
+    with col1:
+        L = st.slider("Beam Length (m)", 1.0, 10.0, 5.0)
+        P = st.slider("Load (N)", 100.0, 5000.0, 1000.0)
+        I = st.slider("Moment of Inertia (m⁴)", 1e-6, 1e-3, 1e-5)
 
-        "Carbon Fiber (CFRP)": {"E": 150e9, "density": 1600},
-        "Kevlar Composite": {"E": 83e9, "density": 1440},
+    with col2:
+        material = st.selectbox("Material", ["Steel", "Aluminum", "Concrete"])
 
-        "Glass Fiber Composite (GFRP)": {"E": 40e9, "density": 2000},
+    # Material properties
+    if material == "Steel":
+        E = 200e9
+        yield_strength = 250e6
+    elif material == "Aluminum":
+        E = 70e9
+        yield_strength = 150e6
+    else:
+        E = 25e9
+        yield_strength = 40e6
 
-        "Wood (Timber - Pine)": {"E": 12e9, "density": 600},
-        "Bamboo (Engineered)": {"E": 20e9, "density": 700},
-
-        "Cast Iron": {"E": 100e9, "density": 7200},
-        "Brass": {"E": 90e9, "density": 8500},
-        "Copper": {"E": 110e9, "density": 8960},
-
-        "Magnesium Alloy": {"E": 45e9, "density": 1800},
-        "High Performance Polymer": {"E": 3e9, "density": 1200}
-    }
-
-    material = st.selectbox("Select Material", list(materials.keys()))
-    E = materials[material]["E"]
-
-    # ---------------- CALCULATIONS ---------------- #
-    I = (b * h**3) / 12
     x = np.linspace(0, L, 100)
-    deflection = (F * x * (3*L**2 - 4*x**2)) / (24 * E * I)
 
+    deflection = (P * x * (L**3 - 2*L*x**2 + x**3)) / (48 * E * I)
     max_deflection = np.max(deflection)
 
-    # ---------------- VISUALIZATION ---------------- #
-    st.subheader("📊 Deflection Curve")
-    fig, ax = plt.subplots()
-    ax.plot(x, deflection, linewidth=2)
-    ax.set_title("Beam Deflection Diagram")
-    ax.set_xlabel("Length (m)")
-    ax.set_ylabel("Deflection (m)")
-    st.pyplot(fig)
+    stress = (P * L) / (4 * I)
+    fos = yield_strength / stress
 
-    # ---------------- ENGINEERING INTERPRETATION ---------------- #
-    st.subheader("🧠 Engineering Analysis")
-
-    stiffness_rank = E / 1e9  # GPa scale
-
-    st.write(f"**Selected Material:** {material}")
-    st.write(f"**Young's Modulus:** {stiffness_rank:.2f} GPa")
-
-    if max_deflection > L / 250:
-        st.error("❌ FAILURE RISK: Excessive deflection detected")
-    elif max_deflection > L / 500:
-        st.warning("⚠️ Moderate deflection – monitor design")
+    if fos > 2:
+        status = "✅ SAFE"
+        color = "green"
+    elif fos > 1:
+        status = "⚠️ WARNING"
+        color = "orange"
     else:
-        st.success("✅ SAFE DESIGN – within elastic limit")
+        status = "❌ FAILURE"
+        color = "red"
+
+    col3, col4 = st.columns(2)
+
+    with col3:
+        st.subheader("Deflection Graph")
+        fig, ax = plt.subplots()
+        ax.plot(x, deflection)
+        ax.set_xlabel("Length (m)")
+        ax.set_ylabel("Deflection (m)")
+        ax.grid()
+        st.pyplot(fig)
+
+    with col4:
+        st.metric("Max Deflection", f"{max_deflection:.6e}")
+        st.metric("Factor of Safety", f"{fos:.2f}")
+        st.markdown(f"<h2 style='color:{color};'>{status}</h2>", unsafe_allow_html=True)
 
 # =========================================================
-# 🔵 MODULE 2: BRIDGE MONITORING (UPGRADED)
+# 🔵 MODULE 2: BRIDGE MONITORING
 # =========================================================
 elif module == "Bridge Health Monitoring":
 
     st.header("🌉 Bridge Health Monitoring Dashboard")
 
-    # ----------- CONTROL FEATURE -----------
-    st.sidebar.subheader("🎛️ Bridge Condition Control")
-
-    condition = st.sidebar.slider(
-        "Bridge Health Level (%)",
-        0, 100, 80
-    )
-
     t = np.arange(0, 50)
 
-    # Dynamic simulation based on condition
-    noise_level = (100 - condition) / 10
+    strain = np.random.normal(50, 10, 50)
+    vibration = np.random.normal(5, 1, 50)
+    temperature = np.random.normal(30, 5, 50)
 
-    strain = np.random.normal(40 + (100-condition)*0.3, noise_level*5, 50)
-    vibration = np.random.normal(3 + (100-condition)*0.05, noise_level, 50)
-    temperature = np.random.normal(30 + (100-condition)*0.1, 2, 50)
+    risk = (np.mean(strain)/100) + (np.mean(vibration)/10)
 
-    # Status logic
-    if condition > 70:
-        status = "✅ HEALTHY"
+    if risk < 1:
+        status = "✅ SAFE"
         color = "green"
-    elif condition > 40:
-        status = "⚠️ MODERATE CONDITION"
+    elif risk < 1.5:
+        status = "⚠️ WARNING"
         color = "orange"
     else:
-        status = "❌ CRITICAL CONDITION"
+        status = "❌ DANGER"
         color = "red"
 
     col1, col2 = st.columns(2)
 
     with col1:
-        st.subheader("📈 Strain")
+        st.subheader("Strain")
         fig1, ax1 = plt.subplots()
         ax1.plot(t, strain)
-        ax1.set_title("Strain Variation")
         ax1.grid()
         st.pyplot(fig1)
 
-        st.subheader("🌡 Temperature")
+        st.subheader("Temperature")
         fig2, ax2 = plt.subplots()
         ax2.plot(t, temperature)
-        ax2.set_title("Temperature Variation")
         ax2.grid()
         st.pyplot(fig2)
 
     with col2:
-        st.subheader("📊 Vibration")
+        st.subheader("Vibration")
         fig3, ax3 = plt.subplots()
         ax3.plot(t, vibration)
-        ax3.set_title("Vibration Response")
         ax3.grid()
         st.pyplot(fig3)
 
-        st.subheader("🚨 System Status")
+        st.subheader("System Status")
         st.markdown(f"<h2 style='color:{color};'>{status}</h2>", unsafe_allow_html=True)
 
     st.markdown("---")
-    st.metric("Bridge Health (%)", condition)
     st.metric("Avg Strain", f"{np.mean(strain):.2f}")
     st.metric("Avg Vibration", f"{np.mean(vibration):.2f}")
     st.metric("Avg Temperature", f"{np.mean(temperature):.2f}")
